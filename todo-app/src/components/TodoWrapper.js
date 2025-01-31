@@ -1,53 +1,80 @@
-import React, {useState} from 'react'
+import React, {useEffect, useState} from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { TodoForm } from './TodoForm'
-import { v4 as uuidv4 } from 'uuid';
 import { Todo } from './Todo';
 import { EditTodoForm } from './EditTodoForm';
-uuidv4();
+import { getTasks,addTask,deleteTask,updateTask, toggleTaskCompletion } from '../features/tasks/tasksSlice';
 
 export const TodoWrapper = () => {
-    const [todos, setTodos] = useState([])
+    const dispatch = useDispatch();
+    const { tasks, loading } = useSelector((state) => state.tasks);
+    const [editingTask, setEditingTask] = useState(null); // Храним текущую редактируемую задачу
 
-    const addTodo = todo => {
-        setTodos([...todos, {id: uuidv4(), task: todo,
-        completed: false, isEditing: false}])
-        console.log(todos)
-    }
+    useEffect(() => {
+        dispatch(getTasks());
+    },[dispatch]);
 
-    const toggleComplete = id => {
-        setTodos(todos.map(todo => todo.id === id ? {...
-            todo, completed: !todo.completed} : todo))     
-    }
+    console.log(tasks);
 
-    const deleteTodo = id => {
-        setTodos(todos.filter(todo => todo.id !== id))
-    }
+    const handleAddTask = (task) => {
+        dispatch(addTask(task));
+    };
 
-    const editTodo = id => {
-        setTodos(todos.map(todo => todo.id === id ? {...
-            todo, isEditing: !todo.isEditing} : todo))
-    }
+    const handleEditClick = (task) => {
+        setEditingTask(task); // Устанавливаем задачу, которую будем редактировать
+    };
+
+    const handleDeleteTask = (id) => {
+        dispatch(deleteTask(id));
+    };
+
+
+
+    const handleUpdateTask = (task, id) => {
+        console.log("handleUpdateTask - task:", task); // Логируем перед dispatch
+        if (task && task.id && task.name) {
+            dispatch(updateTask({ id: task.id, name: task.name }));
+        } else {
+            console.error('Invalid task data');
+        }
+    };
     
-const editTask = (task, id) => {
-    setTodos(todos.map(todo => todo.id === id ? {...
-    todo, task, isEditing: !todo.isEditing} : todo
-    ))
-}
+
+    const handleToggleComplete = (id, completed, name) => {
+        dispatch(toggleTaskCompletion({ id, completed: !completed, name }));
+    };
+    
+    
 
   return (
+    
+    
     <div className='TodoWrapper'>
-        <h1>Get Things Done!</h1>
-        <TodoForm addTodo={addTodo}/>
-        {todos.map((todo, index) => 
-            ( todo.isEditing ? (
-                <EditTodoForm editTodo={editTask} task={todo} />
+        
+        <h1>Input new task!</h1>
+        <TodoForm addTodo={handleAddTask}/>
+        {loading ? (
+            <p>Loading...</p>
+        ): (
+            tasks.map((task) =>
+            task.id === editingTask?.id ? (
+                <EditTodoForm 
+                    editTodo={handleUpdateTask}
+                    task={task}
+                    key ={task.id}
+                    setEditingTask={setEditingTask}
+                    />
             ) : (
-                <Todo task={todo} key={index}
-            toggleComplete={toggleComplete} deleteTodo=
-            {deleteTodo} editTodo={editTodo}/>
-            )
-            ))}
+                <Todo
+                    task={task}
+                    key={task.id}
+                    deleteTodo={handleDeleteTask}
+                    editTodo={handleEditClick}
+                    toggleComplete={handleToggleComplete}
+                />
+            ))
+        )}
         
     </div>
-  )
-}
+  );
+};
